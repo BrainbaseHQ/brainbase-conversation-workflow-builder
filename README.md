@@ -4,7 +4,7 @@
 
 **Describe a phone call in plain language. Get a validated voice agent workflow.**
 
-By [Brainbase](https://github.com/BrainbaseHQ)
+By [Brainbase](https://brainbaselabs.com/)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
 
