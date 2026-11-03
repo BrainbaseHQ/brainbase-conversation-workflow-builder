@@ -4,7 +4,7 @@
 
 **Describe a phone call in plain language. Get a validated voice agent workflow.**
 
-By [Brainbase](https://brainbaselabs.com/)
+By [Brainbase Labs](https://brainbaselabs.com/)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
 
@@ -264,4 +264,4 @@ python3 scripts/validate_workflow.py --add-positions workflow.json
 python3 scripts/diff_workflows.py before.json after.json
 ```
 
-Maintained by [Brainbase](https://github.com/BrainbaseHQ). Released under the [MIT License](LICENSE).
+Maintained by [Brainbase Labs](https://brainbaselabs.com/). Released under the [MIT License](LICENSE).
