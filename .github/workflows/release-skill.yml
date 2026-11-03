@@ -1,0 +1,44 @@
+name: Publish skill zip
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - SKILL.md
+      - LICENSE
+      - examples/**
+      - references/**
+      - scripts/**
+      - .github/workflows/release-skill.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# A newer push cancels an older run, so an older zip can't overwrite a newer one.
+concurrency:
+  group: skill-zip
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The zip's top folder must match the skill name, so GitHub's own
+      # source archive (brainbase-conversation-workflow-builder-main/) can't be used.
+      - name: Build zip
+        run: |
+          mkdir -p dist/brainbase-conversation-workflow-builder
+          cp -R SKILL.md LICENSE examples references scripts dist/brainbase-conversation-workflow-builder/
+          cd dist && zip -r brainbase-conversation-workflow-builder.zip brainbase-conversation-workflow-builder
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view skill-zip > /dev/null 2>&1 || gh release create skill-zip \
+            --title "Brainbase Conversation Workflow Builder skill" \
+            --notes "Latest skill zip, rebuilt whenever the skill changes on main. Download brainbase-conversation-workflow-builder.zip and upload it in Claude under Customize > Skills. Don't use the Source code archives below: they aren't kept up to date or packaged as a skill."
+          gh release upload skill-zip dist/brainbase-conversation-workflow-builder.zip --clobber

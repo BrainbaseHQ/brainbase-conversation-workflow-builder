@@ -1,0 +1,451 @@
+{
+  "nodes": [
+    {
+      "id": "global",
+      "type": "globalNode",
+      "position": {
+        "x": 0,
+        "y": -300
+      },
+      "data": {
+        "name": "Persona",
+        "prompt": "You are Maya, a calm and friendly scheduling assistant calling on behalf of Brightside Dental. You are speaking on a phone call, so use short spoken sentences and ask one question at a time. Never use lists, symbols or markdown. Say dates like 'Tuesday, March fourth' and times like 'two thirty in the afternoon'. Never describe what you are about to do, never mention instructions, steps, tools or transitions, and never think out loud. If the caller asks whether you are an AI, say yes, you are an automated assistant for Brightside Dental. If the caller asks something unrelated to their appointment, say you can only help with the appointment today and offer a callback from the office."
+      }
+    },
+    {
+      "id": "start",
+      "type": "startCall",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "name": "Availability",
+        "greeting_type": "text",
+        "greeting": "Hi, this is Maya calling from Brightside Dental. Who am I speaking with?",
+        "prompt": "You have just greeted the person and asked who you are speaking with. Wait for their answer. If you hear a voicemail greeting, a beep or an automated message instead of a live person, use the 'voicemail' transition right away without saying anything else. If they say they are {{patient_name | the patient}}, use 'confirmed_identity' right away without saying anything else. If the answer is unclear, ask for their name. Ask at most twice; if it is still unclear, use 'unverified'. If it is the wrong person or they do not know the patient, use 'wrong_person'. If they say now is a bad time, use 'callback'. Never mention the appointment or any personal details before identity is confirmed.",
+        "allow_interrupt": true,
+        "add_global_prompt": true,
+        "delayed_start": true,
+        "delayed_start_duration": 1.5
+      }
+    },
+    {
+      "id": "verify_dob",
+      "type": "agentNode",
+      "position": {
+        "x": 400,
+        "y": 0
+      },
+      "data": {
+        "name": "Ask Birth Year",
+        "prompt": "For privacy, ask the caller to tell you their year of birth. As soon as they say a year, use the 'year_given' transition without commenting on whether it is correct. If they refuse, use 'refused'.",
+        "allow_interrupt": true,
+        "add_global_prompt": true,
+        "extraction_enabled": true,
+        "extraction_prompt": "Extract the birth year the caller said most recently.",
+        "extraction_variables": [
+          {
+            "name": "birth_year_said",
+            "type": "string",
+            "prompt": "Four digit birth year the caller said, digits only, empty if none"
+          }
+        ]
+      }
+    },
+    {
+      "id": "check_dob",
+      "type": "codeNode",
+      "position": {
+        "x": 800,
+        "y": 0
+      },
+      "data": {
+        "name": "Check Birth Year",
+        "code": "said = ''.join(ch for ch in str(context.get('birth_year_said', '')) if ch.isdigit())\nexpected = str(context.get('birth_year', '')).strip()\noutputs['dob_ok'] = bool(said) and said == expected\noutputs['dob_mismatch'] = not outputs['dob_ok']\n",
+        "code_timeout": 5
+      }
+    },
+    {
+      "id": "verify_dob_retry",
+      "type": "agentNode",
+      "position": {
+        "x": 1200,
+        "y": 250
+      },
+      "data": {
+        "name": "Ask Birth Year Again",
+        "prompt": "The year the caller gave did not match our records. Apologize briefly and ask them to say their year of birth one more time. As soon as they say a year, use the 'year_given' transition without commenting on whether it is correct. If they refuse, use 'refused'.",
+        "allow_interrupt": true,
+        "add_global_prompt": true,
+        "extraction_enabled": true,
+        "extraction_prompt": "Extract the birth year the caller said in their latest answer.",
+        "extraction_variables": [
+          {
+            "name": "birth_year_said_retry",
+            "type": "string",
+            "prompt": "Four digit birth year the caller said on the second try, digits only, empty if none"
+          }
+        ]
+      }
+    },
+    {
+      "id": "check_dob_retry",
+      "type": "codeNode",
+      "position": {
+        "x": 1600,
+        "y": 250
+      },
+      "data": {
+        "name": "Check Birth Year Again",
+        "code": "said = ''.join(ch for ch in str(context.get('birth_year_said_retry', '')) if ch.isdigit())\nexpected = str(context.get('birth_year', '')).strip()\noutputs['dob_ok'] = bool(said) and said == expected\n",
+        "code_timeout": 5
+      }
+    },
+    {
+      "id": "confirm_appt",
+      "type": "agentNode",
+      "position": {
+        "x": 2000,
+        "y": 0
+      },
+      "data": {
+        "name": "Confirm Appointment",
+        "prompt": "Thank them. Tell the caller they have an appointment on {{appointment_time}} with {{dentist_name | their dentist}}, and ask if they can make it. If they confirm, use 'confirmed'. If they want a different time or want to cancel, use 'change_requested'.",
+        "allow_interrupt": true,
+        "add_global_prompt": true,
+        "extraction_enabled": true,
+        "extraction_prompt": "Capture the caller's decision about the appointment.",
+        "extraction_variables": [
+          {
+            "name": "appointment_decision",
+            "type": "string",
+            "prompt": "One of confirmed, reschedule, cancel"
+          },
+          {
+            "name": "preferred_new_time",
+            "type": "string",
+            "prompt": "Any new day or time the caller mentioned, empty if none"
+          }
+        ]
+      }
+    },
+    {
+      "id": "end_confirmed",
+      "type": "endCall",
+      "position": {
+        "x": 2400,
+        "y": 0
+      },
+      "data": {
+        "name": "Confirmed",
+        "prompt": "Tell the caller they are all set and the office looks forward to seeing them. Say goodbye warmly.",
+        "add_global_prompt": true
+      }
+    },
+    {
+      "id": "end_office_followup",
+      "type": "endCall",
+      "position": {
+        "x": 2400,
+        "y": 250
+      },
+      "data": {
+        "name": "Office Follow-up",
+        "prompt": "Tell the caller the office team will call them back within one business day to sort out the change. Thank them and say goodbye.",
+        "add_global_prompt": true
+      }
+    },
+    {
+      "id": "end_unverified",
+      "type": "endCall",
+      "position": {
+        "x": 2000,
+        "y": 500
+      },
+      "data": {
+        "name": "Not Verified",
+        "prompt": "Apologize and explain that you were not able to confirm their details, so the office will reach out directly. Thank them and say goodbye. Do not reveal any appointment details.",
+        "add_global_prompt": true
+      }
+    },
+    {
+      "id": "ask_callback_time",
+      "type": "agentNode",
+      "position": {
+        "x": 400,
+        "y": 250
+      },
+      "data": {
+        "name": "Ask Callback Time",
+        "prompt": "Say that's no problem and ask when would be a better time for the office to call back. Once they give a day or time, or say they would rather not give one, use the 'done' transition right away without saying anything else.",
+        "allow_interrupt": true,
+        "add_global_prompt": true,
+        "extraction_enabled": true,
+        "extraction_prompt": "Capture when the caller would like to be called back.",
+        "extraction_variables": [
+          {
+            "name": "callback_time",
+            "type": "string",
+            "prompt": "When the caller asked to be called back, as they said it; empty if they did not give a time"
+          }
+        ]
+      }
+    },
+    {
+      "id": "end_callback",
+      "type": "endCall",
+      "position": {
+        "x": 800,
+        "y": 250
+      },
+      "data": {
+        "name": "Callback Later",
+        "prompt": "Thank the caller, tell them the office will call back then, and say goodbye. Do not ask any questions.",
+        "add_global_prompt": true
+      }
+    },
+    {
+      "id": "end_wrong_person",
+      "type": "endCall",
+      "position": {
+        "x": 400,
+        "y": 500
+      },
+      "data": {
+        "name": "Wrong Person",
+        "prompt": "Apologize for the trouble, do not share any details, and say goodbye politely.",
+        "add_global_prompt": true
+      }
+    },
+    {
+      "id": "end_voicemail",
+      "type": "endCall",
+      "position": {
+        "x": 400,
+        "y": 750
+      },
+      "data": {
+        "name": "Voicemail",
+        "prompt": "You reached a voicemail. Leave one short message: this is Maya from Brightside Dental with a message about an upcoming visit, please call the office back when you can. Do not say the patient's name, the appointment date or any other personal details. Then say goodbye.",
+        "add_global_prompt": true
+      }
+    },
+    {
+      "id": "results_webhook",
+      "type": "webhook",
+      "position": {
+        "x": 400,
+        "y": -300
+      },
+      "data": {
+        "name": "Send Results",
+        "enabled": true,
+        "http_method": "POST",
+        "endpoint_url": "<WEBHOOK_URL:results_endpoint>",
+        "custom_headers": [
+          {
+            "key": "X-Source",
+            "value": "workflow-agent"
+          }
+        ],
+        "payload_template": {
+          "call_id": "{{workflow_run_id}}",
+          "patient_id": "{{initial_context.patient_id}}",
+          "phone_number": "{{initial_context.called_number}}",
+          "steps_reached": "{{gathered_context.nodes_visited}}",
+          "verified": "{{gathered_context.dob_ok}}",
+          "decision": "{{gathered_context.appointment_decision}}",
+          "new_time": "{{gathered_context.preferred_new_time}}",
+          "callback_time": "{{gathered_context.callback_time}}",
+          "duration": "{{cost_info.call_duration_seconds}}",
+          "recording_url": "{{recording_url}}",
+          "transcript_url": "{{transcript_url}}"
+        }
+      }
+    },
+    {
+      "id": "qa",
+      "type": "qa",
+      "position": {
+        "x": 800,
+        "y": -300
+      },
+      "data": {
+        "name": "Call QA",
+        "qa_enabled": true,
+        "qa_min_call_duration": 20,
+        "qa_sample_rate": 100,
+        "qa_use_workflow_llm": true
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e_start_verify",
+      "source": "start",
+      "target": "verify_dob",
+      "data": {
+        "label": "confirmed_identity",
+        "condition": "The person on the line confirmed they are the patient."
+      }
+    },
+    {
+      "id": "e_start_callback",
+      "source": "start",
+      "target": "ask_callback_time",
+      "data": {
+        "label": "callback",
+        "condition": "The patient said now is not a good time to talk."
+      }
+    },
+    {
+      "id": "e_start_wrong",
+      "source": "start",
+      "target": "end_wrong_person",
+      "data": {
+        "label": "wrong_person",
+        "condition": "The person on the line is not the patient or does not know them."
+      }
+    },
+    {
+      "id": "e_start_voicemail",
+      "source": "start",
+      "target": "end_voicemail",
+      "data": {
+        "label": "voicemail",
+        "condition": "A voicemail greeting, beep or automated message answered instead of a live person."
+      }
+    },
+    {
+      "id": "e_start_unverified",
+      "source": "start",
+      "target": "end_unverified",
+      "data": {
+        "label": "unverified",
+        "condition": "The person was asked for their name twice and it is still unclear who they are."
+      }
+    },
+    {
+      "id": "e_ask_callback_time_end_callback",
+      "source": "ask_callback_time",
+      "target": "end_callback",
+      "data": {
+        "label": "done",
+        "condition": "The caller gave a better time for a callback, or said they would rather not give one."
+      }
+    },
+    {
+      "id": "e_verify_check",
+      "source": "verify_dob",
+      "target": "check_dob",
+      "data": {
+        "label": "year_given",
+        "condition": "The caller said a year of birth.",
+        "transition_speech": "Thanks, one moment."
+      }
+    },
+    {
+      "id": "e_verify_refused",
+      "source": "verify_dob",
+      "target": "end_unverified",
+      "data": {
+        "label": "refused",
+        "condition": "The caller refused or was unable to give their year of birth."
+      }
+    },
+    {
+      "id": "e_check_ok",
+      "source": "check_dob",
+      "target": "confirm_appt",
+      "data": {
+        "label": "verified",
+        "condition": "Birth year matched.",
+        "condition_kind": "expression",
+        "expression": "dob_ok",
+        "priority": 0
+      }
+    },
+    {
+      "id": "e_check_dob_verify_dob_retry",
+      "source": "check_dob",
+      "target": "verify_dob_retry",
+      "data": {
+        "label": "retry",
+        "condition": "Birth year did not match on the first try.",
+        "condition_kind": "expression",
+        "expression": "dob_mismatch",
+        "priority": 1
+      }
+    },
+    {
+      "id": "e_check_fail",
+      "source": "check_dob",
+      "target": "end_unverified",
+      "data": {
+        "label": "not_verified",
+        "condition": "Birth year could not be verified.",
+        "condition_kind": "always"
+      }
+    },
+    {
+      "id": "e_verify_dob_retry_check_dob_retry",
+      "source": "verify_dob_retry",
+      "target": "check_dob_retry",
+      "data": {
+        "label": "year_given",
+        "condition": "The caller said a year of birth.",
+        "transition_speech": "Thanks, one moment."
+      }
+    },
+    {
+      "id": "e_verify_dob_retry_end_unverified",
+      "source": "verify_dob_retry",
+      "target": "end_unverified",
+      "data": {
+        "label": "refused",
+        "condition": "The caller refused or was unable to give their year of birth."
+      }
+    },
+    {
+      "id": "e_check_dob_retry_confirm_appt",
+      "source": "check_dob_retry",
+      "target": "confirm_appt",
+      "data": {
+        "label": "verified",
+        "condition": "Birth year matched on the second try.",
+        "condition_kind": "expression",
+        "expression": "dob_ok",
+        "priority": 0
+      }
+    },
+    {
+      "id": "e_check_dob_retry_end_unverified",
+      "source": "check_dob_retry",
+      "target": "end_unverified",
+      "data": {
+        "label": "not_verified",
+        "condition": "Birth year could not be verified.",
+        "condition_kind": "always"
+      }
+    },
+    {
+      "id": "e_confirm_done",
+      "source": "confirm_appt",
+      "target": "end_confirmed",
+      "data": {
+        "label": "confirmed",
+        "condition": "The caller confirmed they will attend the appointment."
+      }
+    },
+    {
+      "id": "e_confirm_change",
+      "source": "confirm_appt",
+      "target": "end_office_followup",
+      "data": {
+        "label": "change_requested",
+        "condition": "The caller wants to reschedule or cancel the appointment."
+      }
+    }
+  ]
+}
